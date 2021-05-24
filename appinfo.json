@@ -1,0 +1,9 @@
+{
+    "id": "com.aventer.webdavclientlite",
+    "version": "0.2.0",
+    "vendor": "avEnter, Jon Wise",
+    "type": "web",
+    "main": "index.html",
+    "title": "WebDAV Client (Beta)",
+    "uiRevision": "2"
+}
