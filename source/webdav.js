@@ -54,7 +54,7 @@ enyo.kind({
                 ]},
             ]},
             // Rechter Abschnitt
-            {name: "panelServers", name: "Navigator", components: [
+            {name: "panelListing", name: "Navigator", components: [
                 { kind: "PageHeader", style: "height:60px;", className: "enyo-header-dark", components: [
                     { kind: enyo.VFlexBox, content: "Navigator", flex: 1 },
                     { kind: "Spinner", name: "spinner" },
@@ -469,6 +469,7 @@ enyo.kind({
                 // Wenn das ausgewaehlte Object ein Verzeichnis ist, dann in dieses wechseln
                 if (item.contenttype == "httpd/unix-directory") {
                     enyo.warn("Changing Directory!");
+                    //webdav.$.dirListScroller.scrollTo(0);
                     this.currentPath = item.path;
                     this.currentItem = null;
                     this.$.spinner.show();
@@ -723,13 +724,11 @@ enyo.kind({
 // content = JSON Object mit folgendem Aufbau {path:, filename, creationdate:, lastmodified:, contenttype:}
 function getDirListContent(content, requestState) {
     if (content && requestState == 4) {
-        enyo.log("done getting directory listing!");
         webdav.connected = true;
-        webdav.$.dirListScroller.scrollTo(0);
+        //webdav.$.dirListScroller.scrollTo(0);
         webdav.$.spinner.hide();
         webdav.dirListData = content
         webdav.$.dirList.render();
-        enyo.log("list should have been rendered!");
     } else {
         if ((requestState <= 0 && content != null) || requestState > 4) {
             enyo.windows.addBannerMessage("HTTP Error retreiving directory list!", "{}");
