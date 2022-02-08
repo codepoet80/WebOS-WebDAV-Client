@@ -1,6 +1,6 @@
 {
     "id": "com.aventer.webdavclientlite",
-    "version": "0.3.0",
+    "version": "0.3.5",
     "vendor": "avEnter, Jon Wise",
     "type": "web",
     "main": "index.html",

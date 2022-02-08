@@ -22,192 +22,91 @@ enyo.kind({
     connected: false,
     // Server konfiguration ändern
     changeServer: false,
+    lastServer: null,
 
     db: null,
 
     components: [
         { kind: "ApplicationEvents", onLoad: "initializeWebDavClient" },
-        //Haupt Fenster
-        {
-            kind: "SlidingPane",
-            multiView: true,
-            flex: 1,
-            components: [
-                // Fenster Menü
-                {
-                    kind: "AppMenu",
-                    components: [
-                        { caption: "About", onclick: "showAboutMessage" }
-                    ]
-                },
-                // Linker Abschnitt
-                {
-                    name: "server",
-                    width: "250px",
-                    components: [{
-                            kind: "PageHeader",
-                            name: "ServerHeader",
-                            style: "height:60px;",
-                            components: [
-                                { kind: enyo.VFlexBox, content: "WebDav Server", flex: 1 },
-                            ]
-                        },
-                        {
-                            kind: "Scroller",
-                            flex: 1,
-                            style: "height:630px",
-                            components: [{
-                                kind: "VFlexBox",
-                                align: "left",
-                                components: [{
-                                    name: "serverList",
-                                    kind: "VirtualRepeater",
-                                    flex: 1,
-                                    onSetupRow: "renderServerListItem",
-                                    components: [
-                                        // Server Liste
-                                        {
-                                            name: "serverItem",
-                                            kind: "SwipeableItem",
-                                            layoutKind: "HFlexLayout",
-                                            onclick: "btnClickConnectServer",
-                                            onConfirm: "deleteServerListItem",
-                                            components: [
-                                                { name: "captionServer", flex: 1 }
-                                            ]
-                                        }
-                                    ]
-                                }]
-                            }]
-                        },
-                        { kind: "Spacer" },
-                        {
-                            kind: "Toolbar",
-                            name: "ServerToolbar",
-                            components: [
-                                { kind: "ToolButton", name: "btnAddServer", icon: "images/add.png", onclick: "btnClickShowAddServerDialog" },
-                                { kind: "ToolButton", icon: "images/configure.png", onclick: "btnClickOpenServerConfigure" },
-                            ]
-                        },
-                    ]
-                },
-                // Rechter Abschnitt
-                {
-                    name: "Navigator",
-                    flex: 1,
-                    components: [{
-                            kind: "PageHeader",
-                            style: "height:60px;",
-                            components: [
-                                { kind: enyo.VFlexBox, content: "Navigator", flex: 1 },
-                                { kind: "Spinner", name: "spinner" },
-                            ]
-                        },
-                        // NOTE: the scroller has flex set to 1
-                        {
-                            name: "dirListScroller",
-                            kind: "Scroller",
-                            flex: 1,
-                            style: "height:630px",
-                            components: [{
-                                kind: "VFlexBox",
-                                flex: 1,
-                                align: "left",
-                                components: [{
-                                    name: "dirList",
-                                    kind: "VirtualRepeater",
-                                    flex: 1,
-                                    onSetupRow: "renderDirListItem",
-                                    components: [{
-                                        name: "dirItem",
-                                        kind: "SwipeableItem",
-                                        style: "height:45px",
-                                        layoutKind: "HFlexLayout",
-                                        onclick: "btnClickOpenDirFile",
-                                        onConfirm: "deleteDirListItem",
-                                        components: [
-                                            { name: "dirIcon", kind: "Image", style: "height:32px;witdh:32px;" },
-                                            {
-                                                kind: "VFlexBox",
-                                                align: "left",
-                                                components: [
-                                                    { name: "captionDir", style: "font-size:13px;font-weight:bold;" },
-                                                    { name: "captionMeta", style: "font-size:10px;font-style:italic;padding-top:1px;" }
-                                                ]
-                                            }
-                                        ]
-                                    }]
-                                }]
-                            }]
-                        },
-                        {
-                            kind: "Toolbar",
-                            components: [
-                                { kind: "GrabButton" },
-                                {
-                                    kind: "HFlexBox",
-                                    components: [
-                                        { kind: "ToolButton", icon: "images/back.png", onclick: "btnClickDirListBack" },
-                                        { kind: "ToolButton", icon: "images/refresh.png", onclick: "btnClickRefreshNavigator" },
-                                        //{ kind: "ToolButton", icon: "images/document-new.png", onclick: "btnClickShowUploadFilePicker" },
-                                        //{ kind: "ToolButton", icon: "images/folder-new.png", onclick: "btnClickShowNewFolderDialog" }
-                                    ]
-                                }
-                            ]
-                        }
-
-                    ]
-                }
-            ]
-        },
-
+        { kind: "AppMenu", components: [
+            { caption: "About", onclick: "showAboutMessage" }
+        ]},
+        { kind: "SlidingPane", multiView: true, flex: 1, components: [ 
+            {name: "panelServers", name: "server", width: "250px", components: [
+                // Linker Abschnitt    
+                { kind: "Header", name: "ServerHeader", className: "enyo-header-dark", style: "height:60px;", components: [
+                    { kind: enyo.VFlexBox, content: "WebDav Servers", flex: 1 },
+                ]},
+                { kind: "Scroller", flex: 1, components: [
+                    { kind: "VFlexBox", align: "left", components: [
+                        { name: "serverList", kind: "VirtualRepeater", flex: 1, onSetupRow: "renderServerListItem", components: [
+                            // Server Liste
+                            { name: "serverItem", kind: "Item", layoutKind: "HFlexLayout", onclick: "btnClickConnectServer", onConfirm: "deleteServerListItem", components: [
+                                { name: "captionServer", flex: 1 }
+                            ]}
+                        ]}
+                    ]}
+                ]},
+                { kind: "Spacer" },
+                { kind: "Toolbar", name: "ServerToolbar", components: [
+                    { kind: "ToolButton", name: "btnAddServer", icon: "images/add.png", onclick: "btnClickShowAddServerDialog" },
+                    { kind: "ToolButton", icon: "images/configure.png", onclick: "btnClickOpenServerConfigure" },
+                ]},
+            ]},
+            // Rechter Abschnitt
+            {name: "panelServers", name: "Navigator", components: [
+                { kind: "PageHeader", style: "height:60px;", className: "enyo-header-dark", components: [
+                    { kind: enyo.VFlexBox, content: "Navigator", flex: 1 },
+                    { kind: "Spinner", name: "spinner" },
+                ]},
+                // NOTE: the scroller has flex set to 1
+                { kind: "Scroller", name: "dirListScroller", flex: 1, components: [
+                    //{ kind: "VFlexBox", flex: 1, align: "left", components: [
+                        { kind: "VirtualRepeater", /*kind: enyo.VirtualList,*/ name: "dirList", flex: 1, onSetupRow: "renderDirListItem", components: [
+                            { kind: "Item", layoutKind: "HFlexLayout", name: "dirItem", style: "height:45px", onclick: "btnClickOpenDirFile", onConfirm: "deleteDirListItem", components: [
+                                { kind: "Image", name: "dirIcon", style: "height:32px;witdh:32px;" },
+                                { kind: "VFlexBox", align: "left", components: [
+                                    { name: "captionDir", style: "font-size:13px;font-weight:bold;" },
+                                    { name: "captionMeta", style: "font-size:10px;font-style:italic;padding-top:1px;" }
+                                ]}
+                            ]}
+                        ]}
+                    //]}
+                ]},
+                { kind: "Toolbar", components: [
+                    { kind: "GrabButton" },
+                    { kind: "HFlexBox", components: [
+                        { kind: "ToolButton", icon: "images/back.png", onclick: "btnClickDirListBack" },
+                        { kind: "ToolButton", icon: "images/refresh.png", onclick: "btnClickRefreshNavigator" },
+                        //{ kind: "ToolButton", icon: "images/document-new.png", onclick: "btnClickShowUploadFilePicker" },
+                        //{ kind: "ToolButton", icon: "images/folder-new.png", onclick: "btnClickShowNewFolderDialog" }
+                    ]}
+                ]}
+            ]}
+        ]},
         // Add Server Dialog
-        {
-            name: "addServerDialog",
-            kind: "ModalDialog",
-            onOpen: "addServerDialogOpen",
-            style: "width:400px",
-            components: [{
-                    kind: "RowGroup",
-                    caption: "Add new WebDAV Server",
-                    components: [{
-                        kind: "VFlexBox",
-                        align: "left",
-                        style: "padding: 5px",
-                        components: [
-                            { name: "itemName", kind: "Input", spellcheck: false, autoWordComplete: false, hint: "Display Name" },
-                            {
-                                name: "protocol",
-                                kind: "CustomListSelector",
-                                style: "padding-left:10px;",
-                                onChange: "protocolChanged",
-                                value: "https",
-                                items: [
-                                    { caption: "HTTP", value: "http" },
-                                    { caption: "HTTPS", value: "https" }
-                                ]
-                            },
-                            { name: "port", kind: "Input", spellcheck: false, autoWordComplete: false, hint: "Port" },
-                            { name: "servername", kind: "Input", disabled: false, spellcheck: false, autoWordComplete: false, autoCapitalize: "lowercase", hint: "Server Name" },
-                            { name: "serverpath", kind: "Input", disabled: false, spellcheck: false, autoWordComplete: false, autoCapitalize: "lowercase", hint: "Server Path (optional)" },
-                            { name: "username", kind: "Input", spellcheck: false, autoWordComplete: false, autoCapitalize: "lowercase", hint: "Username" },
-                            { name: "password", kind: "PasswordInput", spellcheck: false, autoWordComplete: false, hint: "Password" },
-                            { kind: "Spacer" }
-                        ]
-                    }]
-                },
-                {
-                    kind: "HFlexBox",
-                    align: "middle",
-                    components: [
-                        { kind: "Button", flex: 1, caption: "Save", onclick: "btnClickSaveAddServerDialog" },
-                        { kind: "Button", flex: 1, caption: "Close", onclick: "btnClickCloseAddServerDialog" }
-                    ]
-                }
-            ]
-        },
-
-
+        { kind: "ModalDialog", name: "addServerDialog", onOpen: "addServerDialogOpen", components: [
+            { kind: "Scroller", name: "scrollerServerSetup", height: "360px", components: [
+                { kind: "RowGroup", caption: "Add new WebDAV Server", components: [
+                    { kind: "VFlexBox", align: "left", style: "padding: 0px", components: [
+                        { kind: "Input", name: "itemName", spellcheck: false, autoWordComplete: false, hint: "Display Name" },
+                        { kind: "CustomListSelector", name: "protocol", style: "padding-left:10px;", onChange: "protocolChanged", value: "http", items: [
+                            { caption: "HTTP", value: "http" },
+                            { caption: "HTTPS", value: "https" }
+                        ]},
+                        { kind: "Input", name: "port", spellcheck: false, autoWordComplete: false, hint: "Port" },
+                        { kind: "Input", name: "servername", disabled: false, spellcheck: false, autoWordComplete: false, autoCapitalize: "lowercase", hint: "Server Name" },
+                        { kind: "Input", name: "serverpath", disabled: false, spellcheck: false, autoWordComplete: false, autoCapitalize: "lowercase", hint: "Server Path (optional)" },
+                        { kind: "Input", name: "username", spellcheck: false, autoWordComplete: false, autoCapitalize: "lowercase", hint: "Username" },
+                        { kind: "PasswordInput", name: "password", spellcheck: false, autoWordComplete: false, hint: "Password" },
+                    ]}
+                ]},
+                { kind: "HFlexBox", align: "middle", components: [
+                    { kind: "Button", flex: 1, caption: "Save", onclick: "btnClickSaveAddServerDialog" },
+                    { kind: "Button", flex: 1, caption: "Close", onclick: "btnClickCloseAddServerDialog" }
+                ]}
+            ]}
+        ]},
         // Message Dialog fuer jegliche Art von Meldungen
         {
             name: "infoMessageDialog",
@@ -223,82 +122,40 @@ enyo.kind({
                 ]
             }]
         },
-
         // Message Dialog fuer Datei aktionen (oeffnen oder downloaden)
-        {
-            name: "fileActionDialog",
-            kind: "ModalDialog",
-            style: "width:400px",
-            components: [{
-                    kind: "VFlexBox",
-                    align: "left",
-                    style: "align:right",
-                    components: [{
-                        kind: "RowGroup",
-                        caption: "File Action",
-                        components: [{
-                            kind: "VFlexBox",
-                            align: "left",
-                            components: [
-                                { name: "fileName", style: "font-weight:bold;font-size:13px;" },
-                                { name: "fileCreationDate", style: "font-size:13px;" },
-                                { name: "fileLastModified", style: "font-size:13px;" },
-                                { name: "fileContentType", style: "font-size:13px;" }
-                            ]
-                        }]
-                    }]
-                },
-                { name: "fileDownloadProgressBar", kind: "ProgressBar", minimum: 0, maximum: 100, position: 1 },
-                {
-                    kind: "HFlexBox",
-                    align: "right",
-                    style: "padding: 5px",
-                    components: [
-                        { kind: "Button", flex: 1, caption: "Open", onclick: "btnClickOpenFile" },
-                        { kind: "Button", flex: 1, caption: "Download", onclick: "btnClickDownloadFile" },
-                        { kind: "Button", flex: 1, caption: "Cancel", onclick: "btnClickCloseFileActionDialog" }
-                    ]
-                }
-            ]
-        },
-
-
+        { name: "fileActionDialog", kind: "ModalDialog", style: "width:400px", components: [
+            { kind: "VFlexBox", align: "left", style: "align:right", components: [
+                { kind: "RowGroup", caption: "File Action", components: [
+                    { kind: "VFlexBox", align: "left", components: [
+                        { name: "fileName", style: "font-weight:bold;font-size:13px;" },
+                        { name: "fileCreationDate", style: "font-size:13px;" },
+                        { name: "fileLastModified", style: "font-size:13px;" },
+                        { name: "fileContentType", style: "font-size:13px;" }
+                    ]}
+                ]}
+            ]},
+            { kind: "ProgressBar", name: "fileDownloadProgressBar", minimum: 0, maximum: 100, position: 1 },
+            { kind: "HFlexBox", align: "right", style: "padding: 5px", components: [
+                { kind: "Button", flex: 1, caption: "Open", onclick: "btnClickOpenFile" },
+                { kind: "Button", flex: 1, caption: "Download", onclick: "btnClickDownloadFile" },
+                { kind: "Button", flex: 1, caption: "Cancel", onclick: "btnClickCloseFileActionDialog" }
+            ]}
+        ]},
         // Message Dialog fuer das Anlegen eines neuen Verzeichnisses
-        {
-            name: "createFolderDialog",
-            kind: "ModalDialog",
-            style: "width:400px",
-            components: [{
-                    kind: "VFlexBox",
-                    align: "left",
-                    style: "align:right",
-                    components: [{
-                        kind: "RowGroup",
-                        caption: "Create Folder",
-                        components: [{
-                            kind: "VFlexBox",
-                            align: "left",
-                            components: [
-                                { name: "folderName", kind: "Input", hint: "Folder Name" },
-                            ]
-                        }]
-                    }]
-                },
-                {
-                    kind: "HFlexBox",
-                    align: "right",
-                    style: "padding: 5px",
-                    components: [
-                        { kind: "Button", flex: 1, caption: "Create", onclick: "btnClickCreateNewFolder" },
-                        { kind: "Button", flex: 1, caption: "Cancel", onclick: "btnClickCloseCreateFolderDialog" }
-                    ]
-                }
-            ]
-        },
-
-
-        { name: "uploadFilePicker", kind: "FilePicker", onPickFile: "uploadFilePickerResponse" },
-
+        { kind: "ModalDialog", name: "createFolderDialog", style: "width:400px", components: [
+            { kind: "VFlexBox", align: "left", style: "align:right", components: [
+                { kind: "RowGroup", caption: "Create Folder", components: [
+                    { kind: "VFlexBox", align: "left", components: [
+                        { name: "folderName", kind: "Input", hint: "Folder Name" },
+                    ]}
+                ]}
+            ]},
+            { kind: "HFlexBox", align: "right", style: "padding: 5px", components: [
+                { kind: "Button", flex: 1, caption: "Create", onclick: "btnClickCreateNewFolder" },
+                { kind: "Button", flex: 1, caption: "Cancel", onclick: "btnClickCloseCreateFolderDialog" }
+            ]}
+        ]},
+        { kind: "FilePicker", name: "uploadFilePicker", onPickFile: "uploadFilePickerResponse" },
 
         // Palm Service Calls                                   
         { name: "fileDownloadCall", kind: "PalmService", service: "palm://com.palm.downloadmanager/", method: "download", onSuccess: "downloadFileSuccess", onResponse: "downloadFileResponse", subscribe: true },
@@ -324,6 +181,7 @@ enyo.kind({
             this.db.transaction(enyo.bind(this, (function(transaction) { transaction.executeSql(sqlString, [], enyo.bind(this, this.firstInitDBFinish), enyo.bind(this, this.showErrorInInfoMessage)); })));
         }
         this.$.myUpdater.CheckForUpdate(this, "WebDAV Client HD");
+        this.environment = enyo.fetchDeviceInfo();
     },
 
     // Handler fuer das erstmalige anlegen der DB  
@@ -344,10 +202,20 @@ enyo.kind({
         }
     },
 
-
+    selectNextView: function () {
+		//if (this.environment && this.environment.modelName.toLowerCase() != "touchpad") {
+			var pane    = this.$.slidingPane;
+			var viewIdx = pane.getViewIndex();
+			if (viewIdx < pane.views.length - 1) {
+				viewIdx = viewIdx + 1;
+			} else {
+				return;	// we've selected the last available view.
+			}
+			pane.selectViewByIndex(viewIdx);
+		//}
+	},
 
     /* ********************** CONFIGURE SERVER *************************** */
-
     /*
      * Server konfigurations Mode aktivieren
      */
@@ -365,13 +233,10 @@ enyo.kind({
         }
     },
 
-
     /* ************************* APP MENU ******************************** */
-
     openAbout: function() {
         this.$.fileOpenCall.call({ target: "http://www.aventer.biz/13-0-WebDAV-Client-HD.html" });
     },
-
 
     /* *********************** Datei Hochladen *************************** */
 
@@ -399,7 +264,6 @@ enyo.kind({
         }
     },
 
-
     // Datei wurde erfolgreich eingelesen und soll nun hochgeladen werden
     sendFileSuccess: function(inSender, inResponse) {
         this.$.spinner.show();
@@ -414,7 +278,7 @@ enyo.kind({
     sendFileFailure: function(inSender, inResponse) {
         if (inResponse.error !== 'undefined') {
             if (inResponse.error) {
-                this.$.spinner.close();
+                this.$.spinner.hide();
                 this.showInfoMessage("Error: " + inResponse.errorText);
             }
         }
@@ -601,10 +465,10 @@ enyo.kind({
             }
             if (isSelected) {
                 // Hintergrundfarbe aendern
-                this.$.dirItem.applyStyle("background-color", "#CCFFFF");
 
                 // Wenn das ausgewaehlte Object ein Verzeichnis ist, dann in dieses wechseln
                 if (item.contenttype == "httpd/unix-directory") {
+                    enyo.warn("Changing Directory!");
                     this.currentPath = item.path;
                     this.currentItem = null;
                     this.$.spinner.show();
@@ -614,10 +478,8 @@ enyo.kind({
                     this.currentItem = item;
                     this.showFileActionDialog(item);
                 }
-
-            } else {
-                this.$.dirItem.applyStyle("background-color", null);
             }
+            this.$.dirItem.addRemoveClass("highlightedRow", isSelected);
 
             // Den Pfad des Verzeichnisses/Files entfernen und normalisiert ausgeben
             this.$.captionDir.setContent(item.filename);
@@ -673,8 +535,8 @@ enyo.kind({
             this.$.serverpath.setValue("");
             this.$.username.setValue("");
             this.$.password.setValue("");
-            this.$.protocol.setValue("https");
-            this.$.port.setValue("443");
+            this.$.protocol.setValue("http");
+            this.$.port.setValue("80");
             this.$.servername.setStyle("visibility:visible")
 
         } else {
@@ -701,6 +563,7 @@ enyo.kind({
         this.selectedServerItem = inEvent.rowIndex;
 
         this.$.serverList.render();
+        this.selectNextView();
     },
 
     // ServerList Eintraege erstellen
@@ -711,18 +574,23 @@ enyo.kind({
         var isSelected = (inIndex == this.selectedServerItem);
         if (isSelected) {
             // Hintergrundfarbe aendern und Server connecten
-            this.$.serverItem.applyStyle("background-color", "#CCFFFF");
             this.currentServer = item;
             this.currentPath = "";
             if (!this.changeServer) {
-                this.connectWebDavServer(item.servername, item.serverpath, item.port, item.protocol, item.username, item.password);
-                this.selectedServerItem = null;
+                if (this.currentServer != this.lastServer) {
+                    if (this.lastServer)
+                        enyo.warn("Current server changed, connecting to new server: " + item.servername + " from: " + this.lastServer.name);
+                    this.connectWebDavServer(item.servername, item.serverpath, item.port, item.protocol, item.username, item.password);
+                    this.selectedServerItem = null;
+                    this.lastServer = this.currentServer;
+                } else {
+                    this.$.spinner.hide();
+                }
             } else {
                 this.$.addServerDialog.openAtCenter();
             }
-        } else {
-            this.$.serverItem.applyStyle("background-color", null);
         }
+        this.$.serverItem.addRemoveClass("highlightedRow", isSelected);
 
         // Eintrag ausgeben
         if (item) {
@@ -855,11 +723,13 @@ enyo.kind({
 // content = JSON Object mit folgendem Aufbau {path:, filename, creationdate:, lastmodified:, contenttype:}
 function getDirListContent(content, requestState) {
     if (content && requestState == 4) {
+        enyo.log("done getting directory listing!");
         webdav.connected = true;
-        webdav.$.dirListScroller.scrollTo(0);
+        //webdav.$.dirListScroller.scrollTo(0);
         webdav.$.spinner.hide();
         webdav.dirListData = content
         webdav.$.dirList.render();
+        enyo.log("list should have been rendered!");
     } else {
         if ((requestState <= 0 && content != null) || requestState > 4) {
             enyo.windows.addBannerMessage("HTTP Error retreiving directory list!", "{}");
