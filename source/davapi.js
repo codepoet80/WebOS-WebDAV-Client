@@ -61,7 +61,7 @@ function davApi() {
                         var xmltype = request.responseXML.getElementsByTagName("multistatus")[0].getAttribute("xmlns:s");
                         if (xmltype) {
                             xmltype = "RFC2518"
-                        } else {
+                        } else {    
                             xmltype = "RFC4437";
                         }
 
@@ -95,12 +95,18 @@ function davApi() {
                                 try {
                                     var getcontenttypeValue = xmlRequest[i].getElementsByTagName("getcontenttype")[0].firstChild.nodeValue;
                                 } catch (e) {
-                                    enyo.log("getcontenttype element not found");
-                                    var getcontenttypeValue = "unknown";
+                                    try {
+                                        var getcontenttypeValue = xmlRequest[i].getElementsByTagName("collection")[0];
+                                        getcontenttypeValue = "httpd/unix-directory";
+                                    } catch(e) {
+                                        enyo.log("getcontenttype element not found");
+                                        var getcontenttypeValue = "unknown";    
+                                    }
                                 }
                             }
 
                             if (xmltype == "RFC2518") {
+                                enyo.warn("** USING RFC2518");
                                 var creationdateValue = "";
                                 var getcontenttypeValue = "";
                                 if (xmlRequest[i].getElementsByTagName("collection")[0]) {
@@ -118,8 +124,9 @@ function davApi() {
                             var hrefNorm = new Array;
                             hrefNorm = hrefValue.split("/");
                             enyo.log("new file, path: " + decodeURI(hrefValue) + ", filename: " + decodeURI(hrefNorm[hrefNorm.length - 1]) + ", creationdate: " + creationdateValue + ", lastmodified: " + getlastmodifiedValue + ", contenttype: " + getcontenttypeValue);
-
-                            dirListData.push({ path: decodeURI(hrefValue), filename: decodeURI(hrefNorm[hrefNorm.length - 1]), creationdate: creationdateValue, lastmodified: getlastmodifiedValue, contenttype: getcontenttypeValue });
+                            //Hide dot files
+                            if (decodeURI(hrefNorm[hrefNorm.length - 1]).indexOf(".") != 0)
+                                dirListData.push({ path: decodeURI(hrefValue), filename: decodeURI(hrefNorm[hrefNorm.length - 1]), creationdate: creationdateValue, lastmodified: getlastmodifiedValue, contenttype: getcontenttypeValue });
 
                         }
                         // Aufrufen der uebergebenen Funktion

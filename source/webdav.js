@@ -305,7 +305,7 @@ enyo.kind({
         { name: "fileOpenCall", kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open", onSuccess: "openFileSuccess", onResponse: "downloadFileResponse", subscribe: true },
         { name: "fileSendCall", kind: "PalmService", service: "palm://com.aventer.webdavclientlite.service/", method: "sendfile", onSuccess: "sendFileSuccess", onFailure: "sendFileFailure" },
 
-
+        { name: "myUpdater", kind: "Helpers.Updater" }
     ],
 
     // Daten der angelegten Server (Format: JSON)
@@ -313,7 +313,7 @@ enyo.kind({
 
     // Programmstart  
     initializeWebDavClient: function(inSender) {
-        this.resizeLayout();
+        //this.resizeLayout();
         // Konfiguration Laden. Wenn die DB noch nicht existiert, wird diese erstellt
         this.db = openDatabase('WebDavDB', '0.2', 'WebDAV Data Store', 2000);
         if (this.db) {
@@ -323,6 +323,7 @@ enyo.kind({
             //enyo.log("Writing to DB8 with sql string: " + sqlString);
             this.db.transaction(enyo.bind(this, (function(transaction) { transaction.executeSql(sqlString, [], enyo.bind(this, this.firstInitDBFinish), enyo.bind(this, this.showErrorInInfoMessage)); })));
         }
+        this.$.myUpdater.CheckForUpdate(this, "WebDAV Client HD");
     },
 
     // Handler fuer das erstmalige anlegen der DB  
@@ -577,8 +578,11 @@ enyo.kind({
 
     // Download konnte erfolgreich gestartet werden
     downloadFileSuccess: function(inSender, inResponse) {
-        enyo.windows.addBannerMessage("Download complete!", "{}");
-        this.renderDirListItem(inSender, this.selectedDirItem, true);
+        if (inResponse && inResponse.completed) {
+            enyo.log("Download actually complete!");
+            enyo.windows.addBannerMessage("Download complete!", "{}");
+            this.renderDirListItem(inSender, this.selectedDirItem, true);
+        }
     },
 
     /* *************** WebDav File List bezogene Funktionen ***************** */
