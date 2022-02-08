@@ -725,7 +725,7 @@ function getDirListContent(content, requestState) {
     if (content && requestState == 4) {
         enyo.log("done getting directory listing!");
         webdav.connected = true;
-        //webdav.$.dirListScroller.scrollTo(0);
+        webdav.$.dirListScroller.scrollTo(0);
         webdav.$.spinner.hide();
         webdav.dirListData = content
         webdav.$.dirList.render();
