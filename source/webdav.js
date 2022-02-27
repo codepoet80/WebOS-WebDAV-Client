@@ -548,36 +548,6 @@ enyo.kind({
 
     /* *************** Server Liste bezogene Funktionen ****************** */
 
-
-    addServerDialogOpen: function(inSender, inEvent) {
-
-        if (!this.changeServer) {
-            // Formular leeren
-            this.$.itemName.setValue("");
-            this.$.servername.setValue("");
-            this.$.serverpath.setValue("");
-            this.$.username.setValue("");
-            this.$.password.setValue("");
-            this.$.protocol.setValue("http");
-            this.$.port.setValue("80");
-            this.$.servername.setStyle("visibility:visible")
-
-        } else {
-            // Server Informationen in das Formular eintragen
-            this.$.itemName.setValue(this.serverData[this.selectedServerItem].name);
-            this.$.servername.setValue(this.serverData[this.selectedServerItem].servername);
-            this.$.serverpath.setValue(this.serverData[this.selectedServerItem].serverpath);
-            this.$.username.setValue(this.serverData[this.selectedServerItem].username);
-            this.$.password.setValue(this.serverData[this.selectedServerItem].password);
-            this.$.protocol.setValue(this.serverData[this.selectedServerItem].protocol);
-            this.$.port.setValue(this.serverData[this.selectedServerItem].port);
-
-            this.$.servername.disabled = true;
-
-        }
-
-    },
-
     // Mit Server verbinden und Stammverzeichnis laden
     btnClickConnectServer: function(inSender, inEvent) {
         if (!this.changeServer) {
@@ -642,6 +612,32 @@ enyo.kind({
         this.$.port.setValue("443");
     },
 
+    addServerDialogOpen: function(inSender, inEvent) {
+        if (!this.changeServer) {
+            // Formular leeren
+            this.$.itemName.setValue("");
+            this.$.servername.setValue("");
+            this.$.serverpath.setValue("");
+            this.$.username.setValue("");
+            this.$.password.setValue("");
+            this.$.protocol.setValue("http");
+            this.$.port.setValue("80");
+            this.$.servername.setStyle("visibility:visible")
+
+        } else {
+            // Server Informationen in das Formular eintragen
+            this.$.itemName.setValue(this.serverData[this.selectedServerItem].name);
+            this.$.servername.setValue(this.serverData[this.selectedServerItem].servername);
+            this.$.serverpath.setValue(this.serverData[this.selectedServerItem].serverpath);
+            this.$.username.setValue(this.serverData[this.selectedServerItem].username);
+            this.$.password.setValue(this.serverData[this.selectedServerItem].password);
+            this.$.protocol.setValue(this.serverData[this.selectedServerItem].protocol);
+            this.$.port.setValue(this.serverData[this.selectedServerItem].port);
+
+            this.$.servername.disabled = true;
+        }
+    },
+
     // Neu angelegten Server speicher:
     btnClickSaveAddServerDialog: function() {
         // Eingaben auslesen
@@ -652,7 +648,6 @@ enyo.kind({
         nvPassword = this.$.password.getValue();
         nvProtocol = this.$.protocol.getValue();
         nvPort = this.$.port.getValue();
-
 
         // Neuen Server Speichern oder aktualisieren
         this.nullHandleCount = 0;
@@ -697,7 +692,6 @@ enyo.kind({
 
     },
 
-
     /* ***************** Info Message Dialog Funktionen ******************* */
 
     // Info Message schliessen
@@ -705,7 +699,6 @@ enyo.kind({
         this.$.infoMessage.setContent("");
         this.$.infoMessageDialog.close();
     },
-
 
     // Info Message Fenster mit uebergebenen error Object oeffnen  
     showErrorInInfoMessage: function(inTrans, inError) {
@@ -722,8 +715,6 @@ enyo.kind({
         this.$.infoMessageDialog.openAtCenter();
         this.$.infoMessage.setContent(text);
     },
-
-
 
     /* ***************** WebDAV bezogene Funktionen ********************* */
 
@@ -760,7 +751,6 @@ function getDirListContent(content, requestState) {
     }
 }
 
-
 // request Handler fuer das auswerten des Rueckgabecodes des loeschvorganges
 function getDeleteDirListItemResponse(content) {
     // Bei dem getesteten webdav server, gab es hier nie response
@@ -771,7 +761,6 @@ function getCreateFolderRequest(content) {
     // Bei dem getesteten webdav server, gab es hier nie response
     webdav.davReq.getDirList(webdav.currentPath, getDirListContent);
 }
-
 
 // request Handler fuer das uploaden einer Datei
 function uploadFileSuccess(content) {
