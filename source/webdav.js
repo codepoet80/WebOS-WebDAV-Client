@@ -32,7 +32,7 @@ enyo.kind({
             { caption: "About", onclick: "showAboutMessage" }
         ]},
         { kind: "SlidingPane", multiView: true, flex: 1, components: [ 
-            {name: "panelServers", name: "server", width: "250px", components: [
+            {name: "panelServers", width: "250px", components: [
                 // Linker Abschnitt    
                 { kind: "Header", name: "ServerHeader", className: "enyo-header-dark", style: "height:60px;", components: [
                     { kind: enyo.VFlexBox, content: "WebDav Servers", flex: 1 },
@@ -64,7 +64,7 @@ enyo.kind({
                     //{ kind: "VFlexBox", flex: 1, align: "left", components: [
                         { kind: "VirtualRepeater", /*kind: enyo.VirtualList,*/ name: "dirList", flex: 1, onSetupRow: "renderDirListItem", components: [
                             { kind: "Item", layoutKind: "HFlexLayout", name: "dirItem", style: "height:45px", onclick: "btnClickOpenDirFile", onConfirm: "deleteDirListItem", components: [
-                                { kind: "Image", name: "dirIcon", style: "height:32px;witdh:32px;" },
+                                { kind: "Image", name: "dirIcon", style: "height:32px;witdh:32px;", onerror:"iconError"},
                                 { kind: "VFlexBox", align: "left", components: [
                                     { name: "captionDir", style: "font-size:13px;font-weight:bold;" },
                                     { name: "captionMeta", style: "font-size:10px;font-style:italic;padding-top:1px;" }
@@ -108,20 +108,12 @@ enyo.kind({
             ]}
         ]},
         // Message Dialog fuer jegliche Art von Meldungen
-        {
-            name: "infoMessageDialog",
-            kind: "ModalDialog",
-            style: "width:400px",
-            components: [{
-                kind: "VFlexBox",
-                align: "center",
-                style: "padding: 5px",
-                components: [
-                    { name: "infoMessage", style: "font-weight:bold;font-size:13px;" },
-                    { kind: "Button", flex: 1, caption: "OK", onclick: "btnClickCloseInfoMessageDialog" }
-                ]
-            }]
-        },
+        { name: "infoMessageDialog", kind: "ModalDialog", style: "width:400px", components: [{
+            kind: "VFlexBox", align: "center", style: "padding: 5px", components: [
+                { name: "infoMessage", style: "font-weight:bold;font-size:13px;" },
+                { kind: "Button", flex: 1, caption: "OK", onclick: "btnClickCloseInfoMessageDialog" }
+            ]}
+        ]},
         // Message Dialog fuer Datei aktionen (oeffnen oder downloaden)
         { name: "fileActionDialog", kind: "ModalDialog", style: "width:400px", components: [
             { kind: "VFlexBox", align: "left", style: "align:right", components: [
@@ -136,9 +128,9 @@ enyo.kind({
             ]},
             { kind: "ProgressBar", name: "fileDownloadProgressBar", minimum: 0, maximum: 100, position: 1 },
             { kind: "HFlexBox", align: "right", style: "padding: 5px", components: [
-                { kind: "Button", flex: 1, caption: "Open", onclick: "btnClickOpenFile" },
-                { kind: "Button", flex: 1, caption: "Download", onclick: "btnClickDownloadFile" },
-                { kind: "Button", flex: 1, caption: "Cancel", onclick: "btnClickCloseFileActionDialog" }
+                { name: "buttonOpenFile", kind: "Button", flex: 1, caption: "Open", onclick: "btnClickOpenFile" },
+                { name: "buttonDownloadFile", kind: "Button", flex: 1, caption: "Download", onclick: "btnClickDownloadFile" },
+                { name: "buttonCancelFile", kind: "Button", flex: 1, caption: "Close", onclick: "btnClickCloseFileActionDialog" }
             ]}
         ]},
         // Message Dialog fuer das Anlegen eines neuen Verzeichnisses
@@ -158,9 +150,10 @@ enyo.kind({
         { kind: "FilePicker", name: "uploadFilePicker", onPickFile: "uploadFilePickerResponse" },
 
         // Palm Service Calls                                   
-        { name: "fileDownloadCall", kind: "PalmService", service: "palm://com.palm.downloadmanager/", method: "download", onSuccess: "downloadFileSuccess", onResponse: "downloadFileResponse", subscribe: true },
-        { name: "fileOpenCall", kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open", onSuccess: "openFileSuccess", onResponse: "downloadFileResponse", subscribe: true },
-        { name: "fileSendCall", kind: "PalmService", service: "palm://com.aventer.webdavclientlite.service/", method: "sendfile", onSuccess: "sendFileSuccess", onFailure: "sendFileFailure" },
+        { name: "fileDownload", kind: "PalmService", service: "palm://com.palm.downloadmanager/", method: "download", onSuccess: "downloadFileResponse", subscribe: true },
+        { name: "fileDownloadCancel", kind: "PalmService", service: "palm://com.palm.downloadmanager/", method: "cancelDownload", onSuccess: "cancelFileSuccess", onFailure: "cancelFileFailure" },
+        { name: "fileOpen", kind: "PalmService", service: "palm://com.palm.applicationManager/", method: "open", onSuccess: "downloadFileResponse", subscribe: true },
+        { name: "fileSend", kind: "PalmService", service: "palm://com.aventer.webdavclientlite.service/", method: "sendfile", onSuccess: "sendFileSuccess", onFailure: "sendFileFailure" },
 
         { name: "myUpdater", kind: "Helpers.Updater" }
     ],
@@ -172,34 +165,43 @@ enyo.kind({
     initializeWebDavClient: function(inSender) {
         //this.resizeLayout();
         // Konfiguration Laden. Wenn die DB noch nicht existiert, wird diese erstellt
+        this.$.spinner.show();
+        
+        this.$.myUpdater.CheckForUpdate(this, "WebDAV Client HD");
+        this.environment = enyo.fetchDeviceInfo();
+        window.setTimeout(this.startupDB.bind(this), 500);
+    },
+
+    startupDB: function() {
         this.db = openDatabase('WebDavDB', '0.2', 'WebDAV Data Store', 2000);
         if (this.db) {
             this.nullHandleCount = 0;
             // Tabelle erstellen, sofern diese noch nicht existiert
             var sqlString = "CREATE TABLE IF NOT EXISTS serverliste (servername TEXT, serverpath TEXT, name TEXT, username TEXT, password TEXT, protocol TEXT, port TEXT);";
-            //enyo.log("Writing to DB8 with sql string: " + sqlString);
+            enyo.log("Writing to DB8 with sql string: " + sqlString);
             this.db.transaction(enyo.bind(this, (function(transaction) { transaction.executeSql(sqlString, [], enyo.bind(this, this.firstInitDBFinish), enyo.bind(this, this.showErrorInInfoMessage)); })));
         }
-        this.$.myUpdater.CheckForUpdate(this, "WebDAV Client HD");
-        this.environment = enyo.fetchDeviceInfo();
     },
 
     // Handler fuer das erstmalige anlegen der DB  
     firstInitDBFinish: function(transaction, results) {
         // Serverliste laden
         sqlString = "select * from serverliste";
-        //enyo.log("Reading from DB8 with sql string: " + sqlString);
-        this.db.transaction(enyo.bind(this, (function(transaction) { transaction.executeSql(sqlString, [], enyo.bind(this, this.loadServerListFromDB), enyo.bind(this, this.showErrorInInfoMessage)); })));
+        enyo.log("Reading from DB8 with sql string: " + sqlString);
+        this.db.transaction(enyo.bind(this, (function(transaction) { 
+            transaction.executeSql(sqlString, [], enyo.bind(this, this.loadServerListFromDB), enyo.bind(this, this.showErrorInInfoMessage)); 
+        })));  
     },
 
     // Handler fuer das auswerten der Serverlist Laden query  
     loadServerListFromDB: function(transaction, results) {
+        enyo.log("loading server list from DB");
         for (var i = 0; i < results.rows.length; i++) {
             var row = results.rows.item(i);
             this.serverData.push({ servername: row.servername, serverpath: row.serverpath, name: row.name, username: row.username, password: row.password, protocol: row.protocol, port: row.port });
-            // Serverliste neuladen
-            this.$.serverList.render();
         }
+        // Serverliste neuladen
+        this.$.serverList.render();
     },
 
     selectNextView: function () {
@@ -235,7 +237,7 @@ enyo.kind({
 
     /* ************************* APP MENU ******************************** */
     openAbout: function() {
-        this.$.fileOpenCall.call({ target: "http://www.aventer.biz/13-0-WebDAV-Client-HD.html" });
+        this.$.fileOpen.call({ target: "http://www.aventer.biz/13-0-WebDAV-Client-HD.html" });
     },
 
     /* *********************** Datei Hochladen *************************** */
@@ -251,7 +253,7 @@ enyo.kind({
     uploadFilePickerResponse: function(inSender, inFile) {
         if (inFile !== 'undefined') {
             var filename = inFile[0].fullPath.split("/");
-            this.$.fileSendCall.call({
+            this.$.fileSend.call({
                 sourceFile: inFile[0].fullPath,
                 username: this.currentServer.username,
                 password: this.currentServer.password,
@@ -331,43 +333,42 @@ enyo.kind({
         this.$.fileDownloadProgressBar.hide();
 
         // Die Felder Innerhalb des Dialogs beschreiben
+        enyo.log("Selected item data: " + (new XMLSerializer()).serializeToString(item.fulldata));
         this.$.fileName.setContent("Filename: " + item.filename);
         this.$.fileCreationDate.setContent("Creation Date: " + item.creationdate);
         this.$.fileLastModified.setContent("Last Modified: " + item.lastmodified);
         this.$.fileContentType.setContent("Content Type: " + item.contenttype);
+
+        this.$.buttonOpenFile.setState("disabled", false);
+        this.$.buttonDownloadFile.setState("disabled", false);
+        this.$.buttonCancelFile.setContent("Close");
+
+        this.$.fileDownloadProgressBar.hide();
+        this.$.fileDownloadProgressBar.setPosition(0);
     },
 
     // Ausgewaehlte Datei Oeffnen
-    btnClickOpenFile: function() {
-        this.$.fileDownloadProgressBar.show();
-
-        // wenn der servername ein verzeichnis mit beinhalltet, dann muss dieser erst einmal entfernt werden.
-        var path = "";
-        var servername = this.currentServer.servername;
-        if (servername.indexOf("/") > 0) {
-            path = servername.slice(servername.indexOf("/"), servername.length);
-            servername = servername.slice(0, servername.indexOf("/")); //remove trailing slash from server name if present
-        }
-
-        var usePath = this.currentServer.serverpath + encodeURI(this.currentItem.path)
-        var useTarget = this.currentServer.protocol + "://" + encodeURI(this.currentServer.username).replace("@", "%40") + ":" + encodeURI(this.currentServer.password).replace("@", "%40") + "@" + servername + ":" + this.currentServer.port + usePath;
-        enyo.log("Trying open with target: " + useTarget);
-
-        this.$.fileDownloadCall.call({
-            target: useTarget,
-            mime: this.currentItem.contenttype,
-            targetDir: this.targetDir,
-            targetFilename: this.currentItem.filename,
-            keepFilenameOnRedirect: false,
-            canHandlePause: true,
-            subscribe: true
-        });
-
-        this.fileOpen = true;
+    btnClickOpenFile: function(inSender) {
+        enyo.log("User requested remote file OPEN");
+        this.doFileDownload(inSender, true);
     },
 
     // Ausgewahlte Datei downloaden
     btnClickDownloadFile: function(inSender) {
+        enyo.log("User requested remote file DOWNLOAD");
+        this.doFileDownload(inSender, false);
+    },
+
+    doFileDownload: function(inSender, openAfterDownload) {
+        this.fileOpen = false;
+        if (openAfterDownload !== 'undefined')
+            this.fileOpen = openAfterDownload;
+
+        this.$.spinner.show();
+        this.$.buttonOpenFile.setState("disabled", true);
+        this.$.buttonDownloadFile.setState("disabled", true);
+        this.$.buttonCancelFile.setContent("Cancel");
+        this.$.fileDownloadProgressBar.setPosition(0);
         this.$.fileDownloadProgressBar.show();
 
         // wenn der servername ein verzeichnis mit beinhalltet, dann muss dieser erst einmal entfernt werden.
@@ -379,22 +380,21 @@ enyo.kind({
         }
         var usePath = this.currentServer.serverpath + encodeURI(this.currentItem.path)
         var useTarget = this.currentServer.protocol + "://" + encodeURI(this.currentServer.username).replace("@", "%40") + ":" + encodeURI(this.currentServer.password).replace("@", "%40") + "@" + servername + ":" + this.currentServer.port + usePath;
-        enyo.log("Trying download with target: " + useTarget + " to " + this.targetDir + "/" + this.currentItem.filename);
+        enyo.log("Trying get file with target: " + useTarget + " to " + this.targetDir + "/" + this.currentItem.filename);
 
-        this.$.fileDownloadCall.call({
+        this.$.fileDownload.call({
             target: useTarget,
             mime: this.currentItem.contenttype,
             targetDir: this.targetDir,
             targetFilename: this.currentItem.filename,
-            keepFilenameOnRedirect: false,
-            canHandlePause: true,
+            canHandlePause: false,
             subscribe: true
         });
-        this.fileOpen = false;
     },
-
+    
     // Anzeigen der Progressbar und setzen der Position  
     downloadFileResponse: function(inSender, inResponse) {
+        enyo.log("Got information about file download: " + JSON.stringify(inResponse));
         this.$.fileDownloadProgressBar.show();
 
         // Download Ticketnummer merken, um den download ggfs abzubrechen
@@ -402,51 +402,66 @@ enyo.kind({
         var percent = (100 / inResponse.amountTotal) * inResponse.amountReceived;
 
         // Nur die Position aktualisieren, wenn die Prozentzahl groesser 1 ist um ein springen des balkens zu umgehen 
-        if (percent > 1) {
+        if (percent == percent && percent > 1 && percent && percent <= 100) {
             this.$.fileDownloadProgressBar.setPosition(percent);
         }
 
-        // Download ist beendet
-        if (this.$.fileDownloadProgressBar.getPosition() == 100) {
-            // Position der Progressbar zuruecksetzen
-            this.$.fileDownloadProgressBar.hide();
-            this.$.fileDownloadProgressBar.setPosition(1);
+        // Download ist beendet (finished)s
+        if (inResponse && (inResponse.completed || inResponse.aborted)) {
+            enyo.log("Download actually complete!");
+            enyo.log(JSON.stringify(inResponse));
+            this.$.spinner.hide();
+            if (inResponse.completionStatusCode == 200) {
+                this.$.fileDownloadProgressBar.setPosition(percent);
+                enyo.windows.addBannerMessage("Download complete!", "{}");
+            }
+            else if (inResponse.completionStatusCode == 12 || inResponse.aborted)
+                enyo.windows.addBannerMessage("Download cancelled", "{}");
+            else {
+                enyo.windows.addBannerMessage("Download failed!", "{}");
+                this.downloadFileFailure(inSender, { errorText: "Download failed - " + translateErrorCode(inResponse.completionStatusCode) + " (" + inResponse.completionStatusCode + ")"})
+            }
             this.$.fileActionDialog.close();
 
             // Datei oeffnen sofern der User den oeffnen button drueckte
             if (this.fileOpen) {
-                this.$.fileOpenCall.call({ target: this.targetDir + "/" + this.currentItem.filename });
+                enyo.log("Opening downloaded file: " + this.targetDir + "/" + this.currentItem.filename);
+                this.$.fileOpen.call({ target: this.targetDir + "/" + this.currentItem.filename });
                 this.fileOpen = false;
             }
-            //this.renderDirListItem(inSender, this.selectedDirItem, true);
+            this.renderDirListItem(inSender, this.selectedDirItem, true);
         }
+    },
+
+    cancelFinished : function(inSender, inResponse) {
+        enyo.log("Cancel Download success, results=" + enyo.json.stringify(inResponse));
+    },
+    cancelFail : function(inSender, inResponse) {
+        enyo.log("Cancel Download failure, results=" + enyo.json.stringify(inResponse));
     },
 
     // FileActionDialog fenster soll ohne weitere Aktion geschlossen werden
     btnClickCloseFileActionDialog: function(inSender) {
+        this.$.spinner.hide();
+        this.fileOpen = false;
         // Wenn gerade am downloaden ist, den download abbrechen
         if (this.downloadTicket) {
-            this.$.fileOpenCall.call({ ticket: this.downloadTicket });
+            this.$.fileDownloadCancel.call({ ticket: this.downloadTicket});
             this.downloadTicket = null;
             this.$.fileDownloadProgressBar.setPosition(1);
+        } else {
+            this.$.fileActionDialog.close();
+            this.renderDirListItem(inSender, this.selectedDirItem, true);
         }
-        this.$.fileActionDialog.close();
-        this.renderDirListItem(inSender, this.selectedDirItem, true);
     },
 
     // Message Ausgabe, wenn beim herunterladen eines Files ein Fehler auftrat
     downloadFileFailure: function(inSender, inResponse) {
+        this.$.spinner.hide();
+        this.$.fileActionDialog.close();
+        this.fileOpen = false;
         this.showInfoMessage("Error: " + inResponse.errorText);
         this.renderDirListItem(inSender, this.selectedDirItem, true);
-    },
-
-    // Download konnte erfolgreich gestartet werden
-    downloadFileSuccess: function(inSender, inResponse) {
-        if (inResponse && inResponse.completed) {
-            enyo.log("Download actually complete!");
-            enyo.windows.addBannerMessage("Download complete!", "{}");
-            this.renderDirListItem(inSender, this.selectedDirItem, true);
-        }
     },
 
     /* *************** WebDav File List bezogene Funktionen ***************** */
@@ -491,6 +506,13 @@ enyo.kind({
 
             return true;
         }
+    },
+
+    //Handle icons for unknown file types
+    iconError: function(inSender, inEvent) {
+        unknownIcon = inEvent.target || inEvent.srcElement;
+        enyo.log("Couldn't find an icon for " + unknownIcon.src + ", using default icon");
+        unknownIcon.src = "images/mimetype/empty.png";
     },
 
     // Oeffnen des ausgewaehlten Verzeichnisses oder Datei
@@ -598,6 +620,7 @@ enyo.kind({
             this.$.captionServer.setContent(item.name);
             return true;
         }
+        this.$.spinner.hide();
     },
 
     // Das zu loeschende Server Object aus der Serverliste und der DB entfernen
@@ -761,300 +784,38 @@ function myescape(content) {
     return content.replace(/@/g, "%40");
 }
 
+function translateErrorCode(code) {
+    switch(code) {
+        case -1:
+            return "General error";
+        case -2:
+            return "Connection timeout";
+        case -3:
+            return "Corrupt file";
+        case -4:
+            return "File system error";
+        case -5:
+            return "HTTP error";
+        case 11:
+            return "Download interrupted";
+        case 12:
+            return "Download canclled";
+        default:
+            return "Unknown error";
+    }
+}
+
 // Datei Icon je nach contenttype ausgeben
 function getImageByMimeType(contenttype) {
-    switch (contenttype) {
+
+    switch(contenttype) {
         case "application/msword":
             return "images/mimetype/application-msword.png";
-        case "application/pdf":
-            return "images/mimetype/application-pdf.png";
-        case "application/pgp-keys":
-            return "images/mimetype/application-pgp-keys.png";
-        case "application/rss+xml":
-            return "images/mimetype/application-rss+xml.png";
-        case "application/vnd.ms-excel":
-            return "images/mimetype/application-vnd.ms-excel.png";
-        case "application/vnd.ms-powerpoint":
-            return "images/mimetype/application-vnd.ms-powerpoint.png";
-        case "application/vnd.oasis.opendocument.formula":
-            return "images/mimetype/application-vnd.oasis.opendocument.formula.png";
-        case "application/vnd.scribus":
-            return "images/mimetype/application-vnd.scribus.png";
-        case "application/x-7zip":
-            return "images/mimetype/application-x-7zip.png";
-        case "application/x-ace":
-            return "images/mimetype/application-x-ace.png";
-        case "application/x-archive":
-            return "images/mimetype/application-x-archive.png";
-        case "application/x-bittorrent":
-            return "images/mimetype/application-x-bittorrent.png";
-        case "application/x-cd-image":
-            return "images/mimetype/application-x-cd-image.png";
-        case "application/x-cue":
-            return "images/mimetype/application-x-cue.png";
-        case "application/x-executable":
-            return "images/mimetype/application-x-executable.png";
-        case "application/x-flash-video":
-            return "images/mimetype/application-x-flash-video.png";
-        case "application/x-glade":
-            return "images/mimetype/application-x-glade.png";
-        case "application/x-gzip":
-            return "images/mimetype/application-x-gzip.png";
-        case "application/x-jar":
-            return "images/mimetype/application-x-jar.png";
-        case "application/x-ms-dos-executable":
-            return "images/mimetype/application-x-ms-dos-executable.png";
-        case "application/x-msdownload":
-            return "images/mimetype/application-x-msdownload.png";
-        case "application/x-php":
-            return "images/mimetype/application-x-php.png";
-        case "application/x-rar":
-            return "images/mimetype/application-x-rar.png";
-        case "application/x-ruby":
-            return "images/mimetype/application-x-ruby.png";
-        case "application/x-sln":
-            return "images/mimetype/application-x-sln.png";
-        case "application/x-tar":
-            return "images/mimetype/application-x-tar.png";
-        case "application/x-theme":
-            return "images/mimetype/application-x-theme.png";
-        case "application/x-zip":
-            return "images/mimetype/application-x-zip.png";
-        case "application/7zip":
-            return "images/mimetype/application-x-7zip.png";
-        case "application/ace":
-            return "images/mimetype/application-x-ace.png";
-        case "application/archive":
-            return "images/mimetype/application-x-archive.png";
-        case "application/bittorrent":
-            return "images/mimetype/application-x-bittorrent.png";
-        case "application/cd-image":
-            return "images/mimetype/application-x-cd-image.png";
-        case "application/cue":
-            return "images/mimetype/application-x-cue.png";
-        case "application/executable":
-            return "images/mimetype/application-x-executable.png";
-        case "application/flash-video":
-            return "images/mimetype/application-x-flash-video.png";
-        case "application/glade":
-            return "images/mimetype/application-x-glade.png";
-        case "application/gzip":
-            return "images/mimetype/application-x-gzip.png";
-        case "application/jar":
-            return "images/mimetype/application-x-jar.png";
-        case "application/ms-dos-executable":
-            return "images/mimetype/application-x-ms-dos-executable.png";
-        case "application/msdownload":
-            return "images/mimetype/application-x-msdownload.png";
-        case "application/php":
-            return "images/mimetype/application-x-php.png";
-        case "application/rar":
-            return "images/mimetype/application-x-rar.png";
-        case "application/ruby":
-            return "images/mimetype/application-x-ruby.png";
-        case "application/sln":
-            return "images/mimetype/application-x-sln.png";
-        case "application/tar":
-            return "images/mimetype/application-x-tar.png";
-        case "application/theme":
-            return "images/mimetype/application-x-theme.png";
-        case "application/zip":
-            return "images/mimetype/application-x-zip.png";
-        case "audio/x-generic":
-            return "images/mimetype/audio-x-generic.png";
-        case "audio/x-mp3-playlist":
-            return "images/mimetype/audio-x-mp3-playlist.png";
-        case "audio/x-mpeg":
-            return "images/mimetype/audio-x-mpeg.png";
-        case "audio/x-ms-wma":
-            return "images/mimetype/audio-x-ms-wma.png";
-        case "audio/x-vorbis+ogg":
-            return "images/mimetype/audio-x-vorbis+ogg.png";
-        case "audio/x-wav":
-            return "images/mimetype/audio-x-wav.png";
-        case "audio/generic":
-            return "images/mimetype/audio-x-generic.png";
-        case "audio/mp3-playlist":
-            return "images/mimetype/audio-x-mp3-playlist.png";
-        case "audio/mpeg":
-            return "images/mimetype/audio-x-mpeg.png";
-        case "audio/ms-wma":
-            return "images/mimetype/audio-x-ms-wma.png";
-        case "audio/vorbis+ogg":
-            return "images/mimetype/audio-x-vorbis+ogg.png";
-        case "audio/wav":
-            return "images/mimetype/audio-x-wav.png";
-        case "authors":
-            return "images/mimetype/authors.png";
-        case "deb":
-            return "images/mimetype/deb.png";
-        case "encrypted":
-            return "images/mimetype/encrypted.png";
-        case "extension":
-            return "images/mimetype/extension.png";
-        case "font/x-generic":
-            return "images/mimetype/font-x-generic.png";
-        case "font/generic":
-            return "images/mimetype/font-x-generic.png";
-        case "image/bmp":
-            return "images/mimetype/image-bmp.png";
-        case "image/gif":
-            return "images/mimetype/image-gif.png";
-        case "image/jpeg":
-            return "images/mimetype/image-jpeg.png";
-        case "image/png":
-            return "images/mimetype/image-png.png";
-        case "image/tiff":
-            return "images/mimetype/image-tiff.png";
-        case "image/x-eps":
-            return "images/mimetype/image-x-eps.png";
-        case "image/x-generic":
-            return "images/mimetype/image-x-generic.png";
-        case "image/x-ico":
-            return "images/mimetype/image-x-ico.png";
-        case "image/x-psd":
-            return "images/mimetype/image-x-psd.png";
-        case "image/x-xcf":
-            return "images/mimetype/image-x-xcf.png";
-        case "image/eps":
-            return "images/mimetype/image-x-eps.png";
-        case "image/generic":
-            return "images/mimetype/image-x-generic.png";
-        case "image/ico":
-            return "images/mimetype/image-x-ico.png";
-        case "image/psd":
-            return "images/mimetype/image-x-psd.png";
-        case "image/xcf":
-            return "images/mimetype/image-x-xcf.png";
-        case "message":
-            return "images/mimetype/message.png";
-        case "multipart/encrypted":
-            return "images/mimetype/multipart-encrypted.png";
-        case "opera/extension":
-            return "images/mimetype/opera-extension.png";
-        case "opera/unite-application":
-            return "images/mimetype/opera-unite-application.png";
-        case "opera/widget":
-            return "images/mimetype/opera-widget.png";
-        case "package/x-generic":
-            return "images/mimetype/package-x-generic.png";
-        case "package/generic":
-            return "images/mimetype/package-x-generic.png";
-        case "phatch/actionlist":
-            return "images/mimetype/phatch-actionlist.png";
-        case "rpm":
-            return "images/mimetype/rpm.png";
-        case "text/css":
-            return "images/mimetype/text-css.png";
-        case "text/html":
-            return "images/mimetype/text-html.png";
-        case "text/plain":
-            return "images/mimetype/text-plain.png";
-        case "text/richtext":
-            return "images/mimetype/text-richtext.png";
-        case "text/x-bak":
-            return "images/mimetype/text-x-bak.png";
-        case "text/x-bibtex":
-            return "images/mimetype/text-x-bibtex.png";
-        case "text/x-changelog":
-            return "images/mimetype/text-x-changelog.png";
-        case "text/x-chdr":
-            return "images/mimetype/text-x-chdr.png";
-        case "text/x-c++hdr":
-            return "images/mimetype/text-x-c++hdr.png";
-        case "text/x-copying":
-            return "images/mimetype/text-x-copying.png";
-        case "text/x-c":
-            return "images/mimetype/text-x-c.png";
-        case "text/x-c++":
-            return "images/mimetype/text-x-c++.png";
-        case "text/x-generic-template":
-            return "images/mimetype/text-x-generic-template.png";
-        case "text/xhtml+xml":
-            return "images/mimetype/text-xhtml+xml.png";
-        case "text/x-install":
-            return "images/mimetype/text-x-install.png";
-        case "text/x-java":
-            return "images/mimetype/text-x-java.png";
-        case "text/x-javascript":
-            return "images/mimetype/text-x-javascript.png";
-        case "text/x-makefile":
-            return "images/mimetype/text-x-makefile.png";
-        case "text/xml":
-            return "images/mimetype/text-xml.png";
-        case "text/x-python":
-            return "images/mimetype/text-x-python.png";
-        case "text/x-readme":
-            return "images/mimetype/text-x-readme.png";
-        case "text/x-script":
-            return "images/mimetype/text-x-script.png";
-        case "text/x-source":
-            return "images/mimetype/text-x-source.png";
-        case "text/x-sql":
-            return "images/mimetype/text-x-sql.png";
-        case "text/x-tex":
-            return "images/mimetype/text-x-tex.png";
-        case "text/bak":
-            return "images/mimetype/text-x-bak.png";
-        case "text/bibtex":
-            return "images/mimetype/text-x-bibtex.png";
-        case "text/changelog":
-            return "images/mimetype/text-x-changelog.png";
-        case "text/chdr":
-            return "images/mimetype/text-x-chdr.png";
-        case "text/c++hdr":
-            return "images/mimetype/text-x-c++hdr.png";
-        case "text/copying":
-            return "images/mimetype/text-x-copying.png";
-        case "text/c":
-            return "images/mimetype/text-x-c.png";
-        case "text/c++":
-            return "images/mimetype/text-x-c++.png";
-        case "text/generic-template":
-            return "images/mimetype/text-x-generic-template.png";
-        case "text/install":
-            return "images/mimetype/text-x-install.png";
-        case "text/java":
-            return "images/mimetype/text-x-java.png";
-        case "text/javascript":
-            return "images/mimetype/text-x-javascript.png";
-        case "text/makefile":
-            return "images/mimetype/text-x-makefile.png";
-        case "text/python":
-            return "images/mimetype/text-x-python.png";
-        case "text/readme":
-            return "images/mimetype/text-x-readme.png";
-        case "text/script":
-            return "images/mimetype/text-x-script.png";
-        case "text/source":
-            return "images/mimetype/text-x-source.png";
-        case "text/sql":
-            return "images/mimetype/text-x-sql.png";
-        case "text/tex":
-            return "images/mimetype/text-x-tex.png";
-        case "unknown":
-            return "images/mimetype/unknown.png";
-        case "vcalendar":
-            return "images/mimetype/vcalendar.png";
-        case "video/x-generic":
-            return "images/mimetype/video-x-generic.png";
-        case "video/generic":
-            return "images/mimetype/video-x-generic.png";
-        case "x/dia-diagram":
-            return "images/mimetype/x-dia-diagram.png";
-        case "x/office-address-book":
-            return "images/mimetype/x-office-address-book.png";
-        case "x/office-document":
-            return "images/mimetype/x-office-document.png";
-        case "x/office-drawing":
-            return "images/mimetype/x-office-drawing.png";
-        case "x/office-presentation":
-            return "images/mimetype/x-office-presentation.png";
-        case "x/office-spreadsheet":
-            return "images/mimetype/x-office-spreadsheet.png";
-        case "httpd/unix-directory":
-            return "images/mimetype/httpd-unix-directory.png";
         default:
-            return "images/mimetype/empty.png";
+            iconPath = contenttype.replace("/", "-");
+            iconPath = iconPath.split(";");
+            iconPath = iconPath[0];
+            iconPath = "images/mimetype/" + iconPath + ".png";
+            return iconPath;        
     }
 }

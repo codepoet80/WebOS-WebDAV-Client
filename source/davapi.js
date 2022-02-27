@@ -48,12 +48,9 @@ function davApi() {
         var xml = '<?xml version="1.0" encoding="utf-8" ?><D:propfind xmlns:D="DAV:"><D:allprop /></D:propfind>';
 
         request.onreadystatechange = function() {
-            enyo.log("ready state changed " + request.readyState);
             // Request war erfolgreich
             if (request.readyState == 4) {
                 // Response Elemente laden und in der schleife durchlaufen um die sich darunter befindlichen Daten auszulesen 
-                enyo.log("response text: " + request.responseText);
-                enyo.log("response xml: " + request.responseXML);
                 enyo.log("response status: " + request.status + "," + request.statusText);
                 if (request.status >= 200 && request.status < 300) {
                     if (request.responseXML) {
@@ -64,6 +61,7 @@ function davApi() {
                         } else {    
                             xmltype = "RFC4437";
                         }
+                        enyo.log("Parsing response using type: " + xmltype);
 
                         var xmlRequest = request.responseXML.getElementsByTagName("response");
                         var count = xmlRequest.length;
@@ -81,16 +79,16 @@ function davApi() {
 
                             if (xmltype == "RFC4437") {
                                 try {
-                                    var creationdateValue = xmlRequest[i].getElementsByTagName("creationdate")[0].firstChild.nodeValue;
-                                } catch (e) {
-                                    enyo.log("creationdate element not found");
-                                    var creationdateValue = "unknown";
-                                }
-                                try {
                                     var getlastmodifiedValue = xmlRequest[i].getElementsByTagName("getlastmodified")[0].firstChild.nodeValue;
                                 } catch (e) {
-                                    enyo.log("getlastmodified element not found");
+                                    //enyo.log("getlastmodified element not found");
                                     var getlastmodifiedValue = "unknown";
+                                }
+                                try {
+                                    var creationdateValue = xmlRequest[i].getElementsByTagName("creationdate")[0].firstChild.nodeValue;
+                                } catch (e) {
+                                    //enyo.log("creationdate element not found, using last modified date");
+                                    var creationdateValue = getlastmodifiedValue;
                                 }
                                 try {
                                     var getcontenttypeValue = xmlRequest[i].getElementsByTagName("getcontenttype")[0].firstChild.nodeValue;
@@ -103,10 +101,10 @@ function davApi() {
                                         var getcontenttypeValue = "unknown";    
                                     }
                                 }
+                                var itemData = xmlRequest[i];
                             }
 
                             if (xmltype == "RFC2518") {
-                                enyo.warn("** USING RFC2518");
                                 var creationdateValue = "";
                                 var getcontenttypeValue = "";
                                 if (xmlRequest[i].getElementsByTagName("collection")[0]) {
@@ -114,6 +112,7 @@ function davApi() {
                                 } else {
                                     getcontenttypeValue = getContentType(hrefValue);
                                 }
+                                var itemData = xmlRequest[i];
                             }
 
                             // Nur den Dateinamen ausgeben, wenn das Letzte Zeichen ein "/" ist, muss dieses erst einmal entfernt werden
@@ -123,13 +122,14 @@ function davApi() {
 
                             var hrefNorm = new Array;
                             hrefNorm = hrefValue.split("/");
-                            enyo.log("new file, path: " + decodeURI(hrefValue) + ", filename: " + decodeURI(hrefNorm[hrefNorm.length - 1]) + ", creationdate: " + creationdateValue + ", lastmodified: " + getlastmodifiedValue + ", contenttype: " + getcontenttypeValue);
+                            //enyo.log("new file, path: " + decodeURI(hrefValue) + ", filename: " + decodeURI(hrefNorm[hrefNorm.length - 1]) + ", creationdate: " + creationdateValue + ", lastmodified: " + getlastmodifiedValue + ", contenttype: " + getcontenttypeValue);
                             //Hide dot files
                             if (decodeURI(hrefNorm[hrefNorm.length - 1]).indexOf(".") != 0)
-                                dirListData.push({ path: decodeURI(hrefValue), filename: decodeURI(hrefNorm[hrefNorm.length - 1]), creationdate: creationdateValue, lastmodified: getlastmodifiedValue, contenttype: getcontenttypeValue });
+                                dirListData.push({ path: decodeURI(hrefValue), filename: decodeURI(hrefNorm[hrefNorm.length - 1]), creationdate: creationdateValue, lastmodified: getlastmodifiedValue, contenttype: getcontenttypeValue, fulldata: itemData });
 
                         }
                         // Aufrufen der uebergebenen Funktion
+                        enyo.log("Finished parsing data for " + dirListData.length + " files");
                         handler(dirListData, request.readyState);
                     }
                 } else {
@@ -253,123 +253,12 @@ function davApi() {
 
 // Datei Icon je nach contenttype ausgeben
 function getContentType(filename) {
-    var fend = filename.slice(filename.lastIndexOf(".") + 1, filename.length);
-    switch (fend) {
-        case "doc":
-            return "application/msword";
-        case "pdf":
-            return "application/pdf";
-        case "pgp":
-            return "application/pgp-keys";
-        case "rss":
-            return "application/rss+xml";
-        case "xls":
-            return "application/vnd.ms-excel";
-        case "ppd":
-            return "application/vnd.ms-powerpoint";
-        case "7p":
-            return "application/7zip";
-        case "ace":
-            return "application/ace";
-        case "torrent":
-            return "application/bittorrent";
-        case "iso":
-            return "application/cd-image";
-        case "cue":
-            return "application/cue";
-        case "exe":
-            return "application/executable";
-        case "flv":
-            return "application/flash-video";
-        case "glade":
-            return "application/glade";
-        case "zip":
-            return "application/gzip";
-        case "jar":
-            return "application/jar";
-        case "exe":
-            return "application/ms-dos-executable";
-        case "php":
-            return "application/php";
-        case "rar":
-            return "application/rar";
-        case "rb":
-            return "application/ruby";
-        case "sln":
-            return "application/sln";
-        case "tar":
-            return "application/tar";
-        case "theme":
-            return "application/theme";
-        case "zip":
-            return "application/zip";
-        case "pls":
-            return "audio/mp3-playlist";
-        case "mpg":
-            return "audio/mpeg";
-        case "wma":
-            return "audio/ms-wma";
-        case "ogg":
-            return "audio/vorbis+ogg";
-        case "wav":
-            return "audio/wav";
-        case "dev":
-            return "deb";
-        case "bmp":
-            return "image/bmp";
-        case "gif":
-            return "image/gif";
-        case "jpg":
-            return "image/jpeg";
-        case "jpeg":
-            return "image/jpeg";
-        case "png":
-            return "image/png";
-        case "tiff":
-            return "image/tiff";
-        case "eps":
-            return "image/eps";
-        case "ico":
-            return "image/ico";
-        case "psd":
-            return "image/psd";
-        case "xcf":
-            return "image/xcf";
-        case "rpm":
-            return "rpm";
-        case "css":
-            return "text/css";
-        case "html":
-            return "text/html";
-        case "txt":
-            return "text/plain";
-        case "rdf":
-            return "text/richtext";
-        case "bak":
-            return "text/bak";
-        case "tex":
-            return "text/bibtex";
-        case "c":
-            return "text/c";
-        case "cpp":
-            return "text/c++";
-        case "java":
-            return "text/java";
-        case "js":
-            return "text/javascript";
-        case "mak":
-            return "text/makefile";
-        case "py":
-            return "text/python";
-        case "readme":
-            return "text/readme";
-        case "sql":
-            return "text/sql";
-        case "tex":
-            return "text/tex";
-        case "ical":
-            return "vcalendar";
-        default:
-            return "text/plain";
+    var fend = "." + filename.slice(filename.lastIndexOf(".") + 1, filename.length);
+    for (var i=0;i<mimetypeList.length;i++){
+        var thisType = mimetypeList[i];
+        if (thisType.extension == fend)
+            return thisType.mimetype;
     }
+    enyo.log("Could not find mimetype for file: " + filename)
+    return "application/octet-stream";
 }
