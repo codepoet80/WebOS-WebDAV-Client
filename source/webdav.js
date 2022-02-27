@@ -525,6 +525,7 @@ enyo.kind({
                     this.$.spinner.show();
                     this.davReq.getDirList(item.path, getDirListContent);
                     this.selectedDirItem = null;
+                    webdav.$.dirListScroller.scrollTo(0,0);
                 } else {
                     this.currentItem = item;
                     this.showFileActionDialog(item);
@@ -538,7 +539,6 @@ enyo.kind({
 
             // Je nach type des Objectes, ein entsprechende Icon ausgeben
             this.$.dirIcon.setSrc(getImageByMimeType(item.contenttype));
-            webdav.$.dirListScroller.scrollTo(0,0);
             return true;
         }
     },
