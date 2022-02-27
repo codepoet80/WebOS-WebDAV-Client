@@ -12,7 +12,7 @@ Prefs = {
   },
 
   setCookie: function(name, value) {
-    Log.debug("setting " + name + " to " + value);
+    enyo.log("setting " + name + " to " + JSON.stringify(value));
     localStorage.setItem(name, JSON.stringify(value));
   },
 

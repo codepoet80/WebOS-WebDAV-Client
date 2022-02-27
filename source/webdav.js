@@ -41,7 +41,7 @@ enyo.kind({
                     { kind: "VFlexBox", align: "left", components: [
                         { name: "serverList", kind: "VirtualRepeater", flex: 1, onSetupRow: "renderServerListItem", components: [
                             // Server Liste
-                            { name: "serverItem", kind: "Item", layoutKind: "HFlexLayout", onclick: "btnClickConnectServer", onConfirm: "deleteServerListItem", components: [
+                            { name: "serverItem", kind: "SwipeableItem", layoutKind: "HFlexLayout", onclick: "btnClickConnectServer", onConfirm: "deleteServerListItem", components: [
                                 { name: "captionServer", flex: 1 }
                             ]}
                         ]}
@@ -50,7 +50,8 @@ enyo.kind({
                 { kind: "Spacer" },
                 { kind: "Toolbar", name: "ServerToolbar", components: [
                     { kind: "ToolButton", name: "btnAddServer", icon: "images/add.png", onclick: "btnClickShowAddServerDialog" },
-                    { kind: "ToolButton", icon: "images/configure.png", onclick: "btnClickOpenServerConfigure" },
+                    { kind: "ToolButton", name: "btnConfigureServer", icon: "images/configure.png", onclick: "btnClickOpenServerConfigure" },
+                    { kind: "ToolButton", name: "btnCancelServer", icon: "images/back.png", onclick: "btnClickOpenServerConfigure", showing: false },
                 ]},
             ]},
             // Rechter Abschnitt
@@ -86,7 +87,7 @@ enyo.kind({
         ]},
         // Add Server Dialog
         { kind: "ModalDialog", name: "addServerDialog", onOpen: "addServerDialogOpen", components: [
-            { kind: "Scroller", name: "scrollerServerSetup", height: "360px", components: [
+            { kind: "Scroller", name: "scrollerServerSetup", height: "320px", components: [
                 { kind: "RowGroup", caption: "Add new WebDAV Server", components: [
                     { kind: "VFlexBox", align: "left", style: "padding: 0px", components: [
                         { kind: "Input", name: "itemName", spellcheck: false, autoWordComplete: false, hint: "Display Name" },
@@ -108,14 +109,14 @@ enyo.kind({
             ]}
         ]},
         // Message Dialog fuer jegliche Art von Meldungen
-        { name: "infoMessageDialog", kind: "ModalDialog", style: "width:400px", components: [{
+        { name: "infoMessageDialog", kind: "ModalDialog", style: "width:320px", components: [{
             kind: "VFlexBox", align: "center", style: "padding: 5px", components: [
-                { name: "infoMessage", style: "font-weight:bold;font-size:13px;" },
+                { name: "infoMessage", style: "font-weight:bold;font-size:13px;padding-bottom:10px" },
                 { kind: "Button", flex: 1, caption: "OK", onclick: "btnClickCloseInfoMessageDialog" }
             ]}
         ]},
         // Message Dialog fuer Datei aktionen (oeffnen oder downloaden)
-        { name: "fileActionDialog", kind: "ModalDialog", style: "width:400px", components: [
+        { name: "fileActionDialog", kind: "ModalDialog", style: "width:320px", components: [
             { kind: "VFlexBox", align: "left", style: "align:right", components: [
                 { kind: "RowGroup", caption: "File Action", components: [
                     { kind: "VFlexBox", align: "left", components: [
@@ -129,12 +130,12 @@ enyo.kind({
             { kind: "ProgressBar", name: "fileDownloadProgressBar", minimum: 0, maximum: 100, position: 1 },
             { kind: "HFlexBox", align: "right", style: "padding: 5px", components: [
                 { name: "buttonOpenFile", kind: "Button", flex: 1, caption: "Open", onclick: "btnClickOpenFile" },
-                { name: "buttonDownloadFile", kind: "Button", flex: 1, caption: "Download", onclick: "btnClickDownloadFile" },
+                { name: "buttonDownloadFile", kind: "Button", flex: 1, caption: "Save", onclick: "btnClickDownloadFile" },
                 { name: "buttonCancelFile", kind: "Button", flex: 1, caption: "Close", onclick: "btnClickCloseFileActionDialog" }
             ]}
         ]},
         // Message Dialog fuer das Anlegen eines neuen Verzeichnisses
-        { kind: "ModalDialog", name: "createFolderDialog", style: "width:400px", components: [
+        { kind: "ModalDialog", name: "createFolderDialog", style: "width:320px", components: [
             { kind: "VFlexBox", align: "left", style: "align:right", components: [
                 { kind: "RowGroup", caption: "Create Folder", components: [
                     { kind: "VFlexBox", align: "left", components: [
@@ -163,34 +164,35 @@ enyo.kind({
 
     // Programmstart  
     initializeWebDavClient: function(inSender) {
-        //this.resizeLayout();
         // Konfiguration Laden. Wenn die DB noch nicht existiert, wird diese erstellt
-        this.$.spinner.show();
-        
-        this.$.myUpdater.CheckForUpdate(this, "WebDAV Client HD");
         this.environment = enyo.fetchDeviceInfo();
-        window.setTimeout(this.startupDB.bind(this), 500);
+        this.loadPrefs();
     },
 
-    startupDB: function() {
-        this.db = openDatabase('WebDavDB', '0.2', 'WebDAV Data Store', 2000);
-        if (this.db) {
-            this.nullHandleCount = 0;
-            // Tabelle erstellen, sofern diese noch nicht existiert
-            var sqlString = "CREATE TABLE IF NOT EXISTS serverliste (servername TEXT, serverpath TEXT, name TEXT, username TEXT, password TEXT, protocol TEXT, port TEXT);";
-            enyo.log("Writing to DB8 with sql string: " + sqlString);
-            this.db.transaction(enyo.bind(this, (function(transaction) { transaction.executeSql(sqlString, [], enyo.bind(this, this.firstInitDBFinish), enyo.bind(this, this.showErrorInInfoMessage)); })));
+    loadPrefs: function() {
+        var ignoreDB = Prefs.getCookie("ignoreDB", false);
+        var savedServers = Prefs.getCookie("serverlist", []);
+        if (savedServers.length > 0) {
+            enyo.log("Found preferences browser storage, skipping database...");
+            this.serverData = savedServers;
+            this.$.serverList.render();
+            this.$.myUpdater.CheckForUpdate(this, "WebDAV Client HD");
+        } else {
+            if (!ignoreDB) {
+                enyo.log("No preferences found in browser storage, trying database...");
+                this.db = openDatabase('WebDavDB', '0.2', 'WebDAV Data Store', 2000);
+                if (this.db) {
+                    // Serverliste laden
+                    sqlString = "select * from serverliste";
+                    enyo.log("Reading from DB8 with sql string: " + sqlString);
+                    this.db.transaction(enyo.bind(this, (function(transaction) { 
+                        transaction.executeSql(sqlString, [], enyo.bind(this, this.loadServerListFromDB), enyo.bind(this, this.showWelcomeMessage)); 
+                    })));
+                }
+            } else {
+                this.showWelcomeMessage();
+            }
         }
-    },
-
-    // Handler fuer das erstmalige anlegen der DB  
-    firstInitDBFinish: function(transaction, results) {
-        // Serverliste laden
-        sqlString = "select * from serverliste";
-        enyo.log("Reading from DB8 with sql string: " + sqlString);
-        this.db.transaction(enyo.bind(this, (function(transaction) { 
-            transaction.executeSql(sqlString, [], enyo.bind(this, this.loadServerListFromDB), enyo.bind(this, this.showErrorInInfoMessage)); 
-        })));  
     },
 
     // Handler fuer das auswerten der Serverlist Laden query  
@@ -200,12 +202,32 @@ enyo.kind({
             var row = results.rows.item(i);
             this.serverData.push({ servername: row.servername, serverpath: row.serverpath, name: row.name, username: row.username, password: row.password, protocol: row.protocol, port: row.port });
         }
-        // Serverliste neuladen
-        this.$.serverList.render();
+        // Save loaded data to browser storage so we don't need to use the DB any more
+        Prefs.setCookie("serverlist", this.serverData);
+        Prefs.setCookie("ignoreDB", true);
+        if (this.serverData.length > 0) {
+            this.$.serverList.render();
+            this.showWelcomeMessage(null, null, "migration");
+        } else {
+            this.showWelcomeMessage(null, null);
+        }
+        // Silently empty out database in the background to complete migration
+        sqlString = "drop table serverliste";
+        enyo.log("Clearing DB8 with sql string: " + sqlString);
+        this.db.transaction(enyo.bind(this, (function(transaction) { 
+            transaction.executeSql(sqlString, [], function() { enyo.log("Database cleared!")}, function() { enyo.warn("Database could not be cleared!")} ); 
+        })));
+    },
+
+    showWelcomeMessage: function(a, b, migration) {
+        var message = "Welcome to webDav Client, start by adding a server.";
+        if (migration)
+            message = "Upgrade complete! Data from previous version has been imported.";
+        this.showInfoMessage(message);
     },
 
     selectNextView: function () {
-		//if (this.environment && this.environment.modelName.toLowerCase() != "touchpad") {
+		if (screen.width < 500) {
 			var pane    = this.$.slidingPane;
 			var viewIdx = pane.getViewIndex();
 			if (viewIdx < pane.views.length - 1) {
@@ -214,7 +236,7 @@ enyo.kind({
 				return;	// we've selected the last available view.
 			}
 			pane.selectViewByIndex(viewIdx);
-		//}
+		}
 	},
 
     /* ********************** CONFIGURE SERVER *************************** */
@@ -223,16 +245,22 @@ enyo.kind({
      */
     btnClickOpenServerConfigure: function() {
         if (!this.changeServer) {
-            this.$.ServerToolbar.setStyle("-webkit-box-pack:center;-webkit-box-align:center;background-color:#3388DD");
-            this.$.ServerHeader.setStyle("height:60px;-webkit-box-pack:start;-webkit-box-align:stretch;background-color:#3388DD");
             this.changeServer = true;
-            this.$.btnAddServer.disabled = true;
+            this.$.btnAddServer.hide();
+            this.$.btnConfigureServer.hide();
+            this.$.btnCancelServer.show();
+            this.$.btnConfigureServer.icon = "back.png";
         } else {
-            this.$.ServerToolbar.setStyle("-webkit-box-pack:center;-webkit-box-align:center;background-color:#343434");
-            this.$.ServerHeader.setStyle("height:60px;-webkit-box-pack:start;-webkit-box-align:stretch;background-color:#CCCCCC");
             this.changeServer = false;
-            this.$.btnAddServer.disabled = false;
+            this.$.btnAddServer.show();
+            this.$.btnConfigureServer.show();
+            this.$.btnCancelServer.hide();
+            this.$.btnConfigureServer.icon = "configure.png";
+            this.selectedServerItem = null;
+            this.$.serverList.render();
         }
+        this.$.ServerHeader.addRemoveClass("editingHighlight", this.changeServer);
+        this.$.ServerToolbar.addRemoveClass("editingHighlight", this.changeServer);
     },
 
     /* ************************* APP MENU ******************************** */
@@ -551,18 +579,16 @@ enyo.kind({
     // Mit Server verbinden und Stammverzeichnis laden
     btnClickConnectServer: function(inSender, inEvent) {
         if (!this.changeServer) {
+            this.selectNextView();
             this.$.spinner.show();
         }
         this.selectedServerItem = inEvent.rowIndex;
-
         this.$.serverList.render();
-        this.selectNextView();
     },
 
     // ServerList Eintraege erstellen
     renderServerListItem: function(inSender, inIndex) {
         var item = this.serverData[inIndex];
-
         // Pruefen ob der aktuelle Eintrag ausgewaehlt wurde
         var isSelected = (inIndex == this.selectedServerItem);
         if (isSelected) {
@@ -590,16 +616,12 @@ enyo.kind({
             this.$.captionServer.setContent(item.name);
             return true;
         }
-        this.$.spinner.hide();
     },
 
     // Das zu loeschende Server Object aus der Serverliste und der DB entfernen
     deleteServerListItem: function(inSender, inIndex) {
-        var sqlString = "delete from serverliste where servername = '" + this.serverData[inIndex].servername + "' and name = '" + this.serverData[inIndex].name + "' and username = '" + this.serverData[inIndex].username + "';";
-        //enyo.log("Writing to DB8 with sql string: " + sqlString);
-        this.db.transaction(enyo.bind(this, (function(transaction) { transaction.executeSql(sqlString, [], null, enyo.bind(this, this.showErrorInInfoMessage)); })));
-
         this.serverData.splice(inIndex, 1);
+        Prefs.setCookie("serverlist", this.serverData);
         this.$.serverList.render();
     },
 
@@ -650,19 +672,14 @@ enyo.kind({
         nvPort = this.$.port.getValue();
 
         // Neuen Server Speichern oder aktualisieren
-        this.nullHandleCount = 0;
         if (!this.changeServer) {
-            var sqlString = 'insert into serverliste (servername,serverpath,name,username,password,protocol,port) values ("' + nvServername + '","' + nvServerpath + '","' + nvItemName + '","' + nvUsername + '","' + nvPassword + '","' + nvProtocol + '","' + nvPort + '");';
             var itemPos = this.serverData.length;
         } else {
-            var sqlString = 'update serverliste set servername="' + nvServername + '", serverpath="' + nvServerpath + '", name="' + nvItemName + '", username="' + nvUsername + '",password="' + nvPassword + '",protocol="' + nvProtocol + '",port="' + nvPort + '" where servername = "' + nvServername + '"';
             var itemPos = this.selectedServerItem;
         }
-        //enyo.log("writing to DB8 with sql string: " + sqlString);
-        this.db.transaction(enyo.bind(this, (function(transaction) { transaction.executeSql(sqlString, [], null, enyo.bind(this, this.showErrorInInfoMessage)); })));
-
         // Eingaben in ein Array schreiben
         this.serverData[itemPos] = { servername: nvServername, serverpath: nvServerpath, name: nvItemName, username: nvUsername, password: nvPassword, protocol: nvProtocol, port: nvPort };
+        Prefs.setCookie("serverlist", this.serverData);
 
         this.$.serverList.renderRow(itemPos);
         this.$.serverList.render();
@@ -707,7 +724,7 @@ enyo.kind({
 
     // Info Message Fenster mit uebergebenen error Object oeffnen  
     showAboutMessage: function(inTrans, inError) {
-        this.showInfoMessage("WebDAV Client: Original code by Aventer, updates by Jon Wise, 2021.");
+        this.showInfoMessage("WebDAV Client: Original code by Aventer, updates by codepoet, 2022.");
     },
 
     // Info Message Fenster mit uebergebenen Text oeffnen

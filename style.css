@@ -2,3 +2,6 @@
     background-color: dimgray;
     color: white;
 }
+.editingHighlight {
+    background-color: #3388DD !important;
+}
