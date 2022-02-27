@@ -73,19 +73,26 @@ function davApi() {
                             try {
                                 var hrefValue = xmlRequest[i].getElementsByTagName("href")[0].firstChild.nodeValue;
                                 var getlastmodifiedValue = xmlRequest[i].getElementsByTagName("getlastmodified")[0].firstChild.nodeValue;
+                                getlastmodifiedValue = Date.parse(getlastmodifiedValue);
+                                getlastmodifiedValue = getlastmodifiedValue.format('yy-mm-dd hh:mm');
                             } catch (e) {
                                 var getlastmodifiedValue = "";
                             }
 
                             if (xmltype == "RFC4437") {
-                                try {
+                                //try {
                                     var getlastmodifiedValue = xmlRequest[i].getElementsByTagName("getlastmodified")[0].firstChild.nodeValue;
-                                } catch (e) {
+                                    getlastmodifiedValue = Date.parse(getlastmodifiedValue);
+                                    getlastmodifiedValue = formatDateString(getlastmodifiedValue);
+                                    //getlastmodifiedValue = getlastmodifiedValue.format('yy-mm-dd hh:mm');
+                                //} catch (e) {
                                     //enyo.log("getlastmodified element not found");
-                                    var getlastmodifiedValue = "unknown";
-                                }
+                                //    var getlastmodifiedValue = "unknown";
+                                //}
                                 try {
                                     var creationdateValue = xmlRequest[i].getElementsByTagName("creationdate")[0].firstChild.nodeValue;
+                                    creationdateValue = Date.parse(creationdateValue);
+                                    creationdateValue = creationdateValue.format('yy-mm-dd hh:mm');
                                 } catch (e) {
                                     //enyo.log("creationdate element not found, using last modified date");
                                     var creationdateValue = getlastmodifiedValue;
@@ -261,4 +268,15 @@ function getContentType(filename) {
     }
     enyo.log("Could not find mimetype for file: " + filename)
     return "application/octet-stream";
+}
+
+function formatDateString(d) {
+    d = new Date(d);
+    var datestring = 
+            d.getFullYear() + "-" +
+            (d.getMonth()+1) + "-" + 
+            d.getDate()  + " " + 
+            d.getHours() + ":" + 
+            d.getMinutes();
+    return datestring;
 }

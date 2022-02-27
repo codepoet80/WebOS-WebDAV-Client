@@ -512,7 +512,6 @@ enyo.kind({
                 // Wenn das ausgewaehlte Object ein Verzeichnis ist, dann in dieses wechseln
                 if (item.contenttype == "httpd/unix-directory") {
                     enyo.warn("Changing Directory!");
-                    //webdav.$.dirListScroller.scrollTo(0);
                     this.currentPath = item.path;
                     this.currentItem = null;
                     this.$.spinner.show();
@@ -531,7 +530,7 @@ enyo.kind({
 
             // Je nach type des Objectes, ein entsprechende Icon ausgeben
             this.$.dirIcon.setSrc(getImageByMimeType(item.contenttype));
-
+            webdav.$.dirListScroller.scrollTo(0,0);
             return true;
         }
     },
@@ -564,6 +563,7 @@ enyo.kind({
             this.$.spinner.show();
             this.currentPath = this.currentPath.substring(0, this.currentPath.lastIndexOf("/"));
             this.davReq.getDirList(this.currentPath, getDirListContent);
+            webdav.$.dirListScroller.scrollTo(0,0);
         }
     },
 
