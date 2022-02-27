@@ -74,28 +74,35 @@ function davApi() {
                                 var hrefValue = xmlRequest[i].getElementsByTagName("href")[0].firstChild.nodeValue;
                                 var getlastmodifiedValue = xmlRequest[i].getElementsByTagName("getlastmodified")[0].firstChild.nodeValue;
                                 getlastmodifiedValue = Date.parse(getlastmodifiedValue);
-                                getlastmodifiedValue = getlastmodifiedValue.format('yy-mm-dd hh:mm');
+                                getlastmodifiedValue = formatDateString(getlastmodifiedValue);
                             } catch (e) {
                                 var getlastmodifiedValue = "";
                             }
 
                             if (xmltype == "RFC4437") {
-                                //try {
+                                try {
                                     var getlastmodifiedValue = xmlRequest[i].getElementsByTagName("getlastmodified")[0].firstChild.nodeValue;
                                     getlastmodifiedValue = Date.parse(getlastmodifiedValue);
                                     getlastmodifiedValue = formatDateString(getlastmodifiedValue);
-                                    //getlastmodifiedValue = getlastmodifiedValue.format('yy-mm-dd hh:mm');
-                                //} catch (e) {
-                                    //enyo.log("getlastmodified element not found");
-                                //    var getlastmodifiedValue = "unknown";
-                                //}
+                                } catch (e) {
+                                    enyo.log("getlastmodified element not found");
+                                    var getlastmodifiedValue = "unknown";
+                                }
                                 try {
                                     var creationdateValue = xmlRequest[i].getElementsByTagName("creationdate")[0].firstChild.nodeValue;
                                     creationdateValue = Date.parse(creationdateValue);
-                                    creationdateValue = creationdateValue.format('yy-mm-dd hh:mm');
+                                    creationdateValue = formatDateString(creationdateValue);
                                 } catch (e) {
                                     //enyo.log("creationdate element not found, using last modified date");
                                     var creationdateValue = getlastmodifiedValue;
+                                }
+                                try {
+                                    var getcontentlength = xmlRequest[i].getElementsByTagName("getcontentlength")[0].firstChild.nodeValue;
+                                    getcontentlength = ((getcontentlength/1024));
+                                    getcontentlength = Math.round(getcontentlength * 100) / 100
+                                    getcontentlength = getcontentlength + " KB";
+                                } catch (e) {
+                                    var getcontentlength = "";
                                 }
                                 try {
                                     var getcontenttypeValue = xmlRequest[i].getElementsByTagName("getcontenttype")[0].firstChild.nodeValue;
@@ -108,12 +115,14 @@ function davApi() {
                                         var getcontenttypeValue = "unknown";    
                                     }
                                 }
+                                
                                 var itemData = xmlRequest[i];
                             }
 
                             if (xmltype == "RFC2518") {
                                 var creationdateValue = "";
                                 var getcontenttypeValue = "";
+                                var getcontentlength = "";
                                 if (xmlRequest[i].getElementsByTagName("collection")[0]) {
                                     getcontenttypeValue = "httpd/unix-directory";
                                 } else {
@@ -132,7 +141,7 @@ function davApi() {
                             //enyo.log("new file, path: " + decodeURI(hrefValue) + ", filename: " + decodeURI(hrefNorm[hrefNorm.length - 1]) + ", creationdate: " + creationdateValue + ", lastmodified: " + getlastmodifiedValue + ", contenttype: " + getcontenttypeValue);
                             //Hide dot files
                             if (decodeURI(hrefNorm[hrefNorm.length - 1]).indexOf(".") != 0)
-                                dirListData.push({ path: decodeURI(hrefValue), filename: decodeURI(hrefNorm[hrefNorm.length - 1]), creationdate: creationdateValue, lastmodified: getlastmodifiedValue, contenttype: getcontenttypeValue, fulldata: itemData });
+                                dirListData.push({ path: decodeURI(hrefValue), filename: decodeURI(hrefNorm[hrefNorm.length - 1]), creationdate: creationdateValue, lastmodified: getlastmodifiedValue, contenttype: getcontenttypeValue, contentlength: getcontentlength, fulldata: itemData });
 
                         }
                         // Aufrufen der uebergebenen Funktion

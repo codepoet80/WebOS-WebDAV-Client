@@ -363,7 +363,15 @@ enyo.kind({
         // Die Felder Innerhalb des Dialogs beschreiben
         enyo.log("Selected item data: " + (new XMLSerializer()).serializeToString(item.fulldata));
         this.$.fileName.setContent("Filename: " + item.filename);
-        this.$.fileCreationDate.setContent("Creation Date: " + item.creationdate);
+        if (item.contentlength != "")
+            this.$.fileCreationDate.setContent("File Size: " + item.contentlength);
+        else {
+            if (item.creationdate != item.lastmodified)
+                this.$.fileCreationDate.setContent("Creation Date: " + item.creationdate);
+            else
+                this.$.fileCreationDate.setContent("");
+        }
+
         this.$.fileLastModified.setContent("Last Modified: " + item.lastmodified);
         this.$.fileContentType.setContent("Content Type: " + item.contenttype);
 
