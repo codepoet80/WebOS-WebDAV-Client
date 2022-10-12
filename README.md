@@ -2,7 +2,7 @@
 
 <img src="https://raw.githubusercontent.com/codepoet80/webos-webdavclient/master/icon.png">
 
-Based on an app by Aventer, updates by Jon Wise.
+Based on an app by Aventer, updates by Jon W.
 
 Original license unknown, modifications under MIT.
 
