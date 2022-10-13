@@ -43,7 +43,7 @@ Dave is cross-platform, and does not include (or particularly need) an installer
 
 **Important Note:** This will not work if you're using a Proxy that is external to your home network -- a remote proxy server will not be able to provide access to a local resource.
 
-* Install [WebDav Client HD from App Museum II](http://appcatalog.webosarchive.com/showMuseumDetails.php?search=webdav&app=1000505) (or by building this repo and installing with WOSQI or the webOS Developer tools)
+* Install [WebDav Client HD from App Museum II](http://appcatalog.webosarchive.org/app/webdav) (or by building this repo and installing with WOSQI or the webOS Developer tools)
 * Press the `+` button to add a new server.
 * Give your WebDAV server any display name
 * Change the protocol to HTTP (HTTPS is supported by Dave, but not covered in this readme)
